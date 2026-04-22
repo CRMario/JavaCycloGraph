@@ -1,2 +1,2 @@
 # JavaCycloGraph
-NetworkX-based Control Flow Graph (CFG) analyzer for Java cyclomatic complexity
+NetworkX-based Control Flow Graph (CFG) analyzer for Java cyclomatic complexity using Sly.
