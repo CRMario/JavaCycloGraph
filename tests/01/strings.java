@@ -1,7 +1,7 @@
-String firstString = "Hello"
+String firstString = "Hello";
 
-String secondString = "Split" + "string"
+String secondString = "Split" + "string";
 
-String thisStringShouldWork = "'hello"
+String thisStringShouldWork = "'hello";
 
 String thisStringShouldNotWork = "eyyy
