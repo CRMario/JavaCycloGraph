@@ -37,6 +37,11 @@ class While(Node):
     body: List = field(default_factory=list)
 
 @dataclass
+class DoWhile(Node):
+    condition: object = None
+    body: List = field(default_factory=list)
+
+@dataclass
 class For(Node):
     initialization: object = None
     condition: object = None

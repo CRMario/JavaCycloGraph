@@ -84,9 +84,21 @@ class JavaParser(Parser):
     def method_list(self, p):
         return []  # the class can also have no methods
     
-    @_("modifiers return_type ID '(' parameters_list ')' '{' method_body '}'")
+    @_("modifiers type ID '(' parameters_list ')' '{' method_body '}'")
     def method_declaration(self, p):
         return Method(name=p.ID, params=p.parameters_list, body=p.method_body)
+    
+    @_("VOID")
+    def type(self, p):
+        return p.VOID
+    
+    @_("ID")
+    def type(self, p):
+        return p.ID
+    
+    @_("ID '[' ']'")
+    def type(self, p):
+        return f'{p.ID}[]' #arrays
     
     @_("parameters_list ',' type ID")
     def parameters_list(self,p):
@@ -116,4 +128,168 @@ class JavaParser(Parser):
     def statements_list(self, p):
         return [] # in java a method can have no statements
     
+    @_("if_statement")
+    def statement(self, p):
+        return p.if_statement
     
+    @_("while_statement")
+    def statement(self, p):
+        return p.while_statement
+    
+    @_("do_while_statement")
+    def statement(self, p):
+        return p.do_while_statement
+    
+    @_("for_statement")
+    def statement(self,p):
+        return p.for_statement
+    
+    @_("switch_statement")
+    def statement(self,p):
+        return p.switch_statement
+    
+    @_("try_statement")
+    def statement(self, p):
+        return p.try_statement
+    
+    @_("return_statement")
+    def statement(self, p):
+        return p.return_statement
+    
+    @_("variable_declaration")
+    def statement(self, p):
+        return p.variable_declaration
+    
+    @_("expression_statement")
+    def statement(self, p):
+        return p.expression_statement
+    
+    @_("modifiers PUBLIC")
+    def modifiers(self, p):
+        return p.modifiers + [p.PUBLIC]
+    
+    @_("modifiers PRIVATE")
+    def modifiers(self, p):
+        return p.modifiers + [p.PRIVATE]
+    
+    @_("modifiers STATIC")
+    def modifiers(self, p):
+        return p.modifiers + [p.STATIC]
+    
+    @_("PUBLIC")
+    def modifiers(self, p):
+        return [p.PUBLIC]
+    
+    @_("PRIVATE")
+    def modifiers(self, p):
+        return [p.PRIVATE]
+    
+    @_("STATIC")
+    def modifiers(self, p):
+        return [p.STATIC]
+
+    @_("")
+    def modifiers(self, p):
+        return [] # no modifiers
+
+    @_("IF '(' expression ')' '{' statements_list '}' ")
+    def if_statement(self,p):
+        return If(condition=p.expression, true=p.statements_list, line=p.lineno)
+
+    @_("IF '(' expression ')' '{' statements_list '}' ELSE '{' statements_list '}'")
+    def if_statement(self,p):
+        return If(condition=p.expression, true=p[5], false=p[9], line=p.lineno)
+    
+    # if (a > b) }
+    #    a = 5; 
+    # } else
+    # if (b > c) {
+    #     ...
+    # }
+    # else-if statements are another recursive if_statement
+    @_("IF '(' expression ')' '{' statements_list '}' ELSE if_statement")
+    def if_statement(self, p):
+        return If(condition=p.expression, true=p.statements_list, false=p.if_statement, line=p.lineno)
+    
+    @_("WHILE '(' expression ')' '{' statements_list '}'")
+    def while_statement(self,p):
+        return While(condition=p.expression, body=p.statements_list, line=p.lineno)
+    
+    @_("DO '{' statements_list '}' WHILE '(' expression ')' ';'")
+    def do_while_statement(self, p):
+        return DoWhile(condition=p.expression, body=p.statements_list, line=p.lineno)
+    
+    @_("FOR '(' for_init expression ';' expression ')' '{' statements_list '}' ")
+    def for_statement(self,p):
+        return For(initialization=p.for_init, condition=p.expression,
+                   update=p.expression, body=p.statements_list, line=p.lineno)
+    
+    @_("variable_declaration")
+    def for_init(self, p):
+        return p.variable_declaration
+    
+    @_("assignment")
+    def for_init(self, p):
+        return p.assignment
+    
+    # comparison expressions
+
+    @_("expression LE expression")
+    def expression(self, p):
+        return f'{p[0]} <= {p[2]}'
+    
+    @_("expression GE expression")
+    def expression(self, p):
+        return f'{p[0]} >= {p[2]}'
+    
+    @_("expression LT expression")
+    def expression(self, p):
+        return f'{p[0]} < {p[2]}'
+    
+    @_("expression GT expression")
+    def expression(self, p):
+        return f'{p[0]} > {p[2]}'
+    
+    @_("expression EQ expression")
+    def expression(self, p):
+        return f'{p[0]} == {p[2]}'
+    
+    @_("expression NE expression")
+    def expression(self, p):
+        return f'{p[0]} != {p[2]}'
+
+    # logical expressions
+    @_("expression AND expression")
+    def expression(self, p):
+        return f'{p[0]} && {p[2]}'
+    
+    @_("expression '&' expression")   
+    def expression(self, p):
+        return f'{p[0]} & {p[2]}'
+    
+    @_("expression OR expression")
+    def expression(self, p):
+        return f'{p[0]} || {p[2]}'
+    
+    @_("expression '|' expression")   
+    def expression(self, p):
+        return f'{p[0]} | {p[2]}'
+    
+    @_("NOT expression")
+    def expression(self, p):
+        return f'!{p[1]}'
+
+    # TODO: more expressions
+
+    # increment expressions
+    @_("ID INCREMENT")
+    def expression(self, p):
+        return f'{p.ID}++'
+
+    @_("ID DECREMENT")
+    def expression(self, p):
+        return f'{p.ID}--'
+    
+    @_("ID")
+    def expression(self, p):
+        return f'{p.ID}'

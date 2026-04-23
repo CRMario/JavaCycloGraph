@@ -138,6 +138,16 @@ class JavaLexer(Lexer):
     def NE(self,t):
         t.type = "NE"
         return t
+    
+    # increment and decrement
+
+    @_(r'\+\+')
+    def INCREMENT(self, t):
+        return t
+
+    @_(r'--')
+    def DECREMENT(self, t):
+        return t
 
     # question for the ternary operator
     @_(r'\?')
