@@ -48,7 +48,7 @@ class JavaLexer(Lexer):
                  '(', ')',
                  '[', ']',
                  ';', ':', ',', '.', '=',
-                 '+', '-', '*', '/', '&', '|'
+                 '+', '-', '*', '/', '&', '|', '%'
                 }
 
     keywords = {
@@ -57,7 +57,8 @@ class JavaLexer(Lexer):
         'class': 'CLASS', 'public': 'PUBLIC', 'private': 'PRIVATE',
         'static': 'STATIC', 'void': 'VOID', 'default': 'DEFAULT',
         'break': 'BREAK', 'continue': 'CONTINUE', 'try': 'TRY',
-        'catch': 'CATCH', 'finally': 'FINALLY'
+        'catch': 'CATCH', 'finally': 'FINALLY', 'this': 'THIS', 'null': 'NULL',
+        'new': 'NEW'
     }
 
     ignore = '\t\r' # using windows, may have to be changed for unix

@@ -32,6 +32,12 @@ class If(Node):
     false: List = field(default_factory=list)
 
 @dataclass
+class Ternary(Node):
+    condition: object = None
+    true: List = field(default_factory=list)
+    false: List = field(default_factory=list)
+
+@dataclass
 class While(Node):
     condition: object = None
     body: List = field(default_factory=list)

@@ -81,7 +81,7 @@ class JavaParser(Parser):
         return [p.method_declaration]
 
     @_("")
-    def method_list(self, p):
+    def methods_list(self, p):
         return []  # the class can also have no methods
     
     @_("modifiers type ID '(' parameters_list ')' '{' method_body '}'")
@@ -221,16 +221,16 @@ class JavaParser(Parser):
     
     @_("FOR '(' for_init expression ';' expression ')' '{' statements_list '}' ")
     def for_statement(self,p):
-        return For(initialization=p.for_init, condition=p.expression,
-                   update=p.expression, body=p.statements_list, line=p.lineno)
+        return For(initialization=p.for_init, condition=p[3],
+                   update=p[5], body=p.statements_list, line=p.lineno)
     
     @_("variable_declaration")
     def for_init(self, p):
         return p.variable_declaration
     
-    @_("assignment")
+    @_("expression")
     def for_init(self, p):
-        return p.assignment
+        return p.expression
     
     # comparison expressions
 
@@ -279,8 +279,117 @@ class JavaParser(Parser):
     def expression(self, p):
         return f'!{p[1]}'
 
-    # TODO: more expressions
+    # arithmetic expressions
+    @_("expression '+' expression")
+    def expression(self,p):
+        return f'{p[0]} + {p[2]}'
+    
+    @_("expression '-' expression")
+    def expression(self,p):
+        return f'{p[0]} - {p[2]}'
+    
+    @_("expression '/' expression")
+    def expression(self,p):
+        return f'{p[0]} / {p[2]}'
+    
+    @_("expression '*' expression")
+    def expression(self,p):
+        return f'{p[0]} * {p[2]}'
+    
+    @_("expression '%' expression")
+    def expression(self,p):
+        return f'{p[0]} % {p[2]}'
+    
+    #method calls
+    @_("ID '(' expression_list ')'")
+    def expression(self, p):
+        return f'{p.ID}({", ".join(p.expression_list)})'
 
+    @_("expression_list ',' expression")
+    def expression_list(self, p):
+        return p.expression_list + [p.expression]
+
+    @_("expression")
+    def expression_list(self, p):
+        return [p.expression]
+    
+    @_("")
+    def expression_list(self, p):
+        return [] # no arguments
+    
+    # parenthesized expression
+    @_("'(' expression ')'")
+    def expression(self, p):
+        return f'({p.expression})'
+    
+    # chained method calls: field access (ex. System.out) and method call (ex. banana.split())
+    @_("expression '.' ID") 
+    def expression(self, p):
+        return f'{p.expression}.{p.ID}'
+    
+    @_("expression '.' ID '(' expression_list ')'") 
+    def expression(self, p):
+        return f'{p.expression}.{p.ID}({", ".join(p.expression_list)})'
+
+    # array access
+    @_("expression '[' expression ']'")
+    def expression(self, p):
+        return f'{p[0]}[{p[2]}]'
+    
+    # ternary operator
+    @_("expression QUESTION expression ':' expression")
+    def expression(self, p):
+        return Ternary(condition=p[0],true=p[2],false=p[4],line=p.lineno)
+    
+    # casting
+    @_("'(' type ')' expression")
+    def expression(self, p):
+        return f'({p.type}){p.expression}'
+
+    # this
+    @_("THIS")
+    def expression(self,p):
+        return 'this'
+    
+    # null
+    @_("NULL")
+    def expression(self,p):
+        return 'null'
+    
+    # new for object creation
+    @_("NEW ID '(' expression_list ')'")
+    def expression(self,p):
+        return f'new {p.ID}({", ".join(p.expression_list)})'
+    
+    @_("NEW ID '[' expression ']'")
+    def expression(self,p):
+        return f'new {p.ID}[{p.expression}]'
+    
+    # int, float, boolean, string
+    @_("INT_CONST")
+    def expression(self, p):
+        return str(p.INT_CONST)
+    
+    @_("FLOAT_CONST")
+    def expression(self, p):
+        return str(p.FLOAT_CONST)
+    
+    @_("BOOL_CONST")
+    def expression(self, p):
+        return str(p.BOOL_CONST)
+    
+    @_("STR_CONST")
+    def expression(self, p):
+        return p.STR_CONST
+
+    # there's more primitive types. they will all fall under the 'type' rule, just like
+    # these four previous ones could have had since i will not be doing type checking (for now?)
+
+    # assignment as expression
+    @_("ID '=' expression")
+    def expression(self, p):
+        return f'{p.ID} = {p.expression}' # while ((line = reader.readLine()) != null), assignment as expression example
+    
     # increment expressions
     @_("ID INCREMENT")
     def expression(self, p):
@@ -293,3 +402,78 @@ class JavaParser(Parser):
     @_("ID")
     def expression(self, p):
         return f'{p.ID}'
+    
+    # done with expressions
+
+    # variable declaration
+    @_("type ID '=' expression ';'")
+    def variable_declaration(self, p):
+        return f'{p.type} {p.ID} = {p.expression}'
+    
+    @_("type ID ';'")
+    def variable_declaration(self, p):
+        return f'{p.type} {p.ID}'
+    
+    #expression statement
+    @_("expression ';'")
+    def expression_statement(self, p):
+        return p.expression
+    
+    # return statement
+    @_("RETURN expression ';'")
+    def return_statement(self, p):
+        return Return(value=p.expression,line=p.lineno)
+    
+    @_("RETURN ';'")
+    def return_statement(self, p):
+        return Return(line=p.lineno)
+    
+    # switch statement
+    @_("SWITCH '(' expression ')' '{' case_list '}'")
+    def switch_statement(self,p):
+        return Switch(condition=p.expression,cases=p.case_list,line=p.lineno)
+    
+    @_("case_list case")
+    def case_list(self, p):
+        return p.case_list + [p.case]
+    
+    @_("case")
+    def case_list(self, p):
+        return [p.case]
+    
+    @_("CASE expression ':' statements_list BREAK ';'")
+    def case(self, p):
+        return Case(value=p.expression,body=p.statements_list,line=p.lineno)
+    
+    @_("CASE expression ':' statements_list") #java allows no break in cases
+    def case(self, p):
+        return Case(value=p.expression, body=p.statements_list, line=p.lineno)
+    
+    @_("DEFAULT ':' statements_list BREAK ';'")
+    def case(self, p):
+        return Case(value="default",body=p.statements_list,line=p.lineno)
+    
+    @_("DEFAULT ':' statements_list")
+    def case(self, p):
+        return Case(value="default",body=p.statements_list,line=p.lineno)
+    
+    # try statement
+    @_("TRY '{' statements_list '}' catch_list")
+    def try_statement(self,p):
+        return Try(body=p.statements_list,catch=p.catch_list,line=p.lineno)
+    
+    @_("TRY '{' statements_list '}' catch_list FINALLY '{' statements_list '}'") #with finally block
+    def try_statement(self,p):
+        return Try(body=p[2],catch=p.catch_list,finally_do=p[7],line=p.lineno)
+    
+    @_("TRY '{' statements_list '}' FINALLY '{' statements_list '}'") #with finally block and no cases
+    def try_statement(self,p):
+        return Try(body=p[2],finally_do=p[6],line=p.lineno)
+    
+    @_("catch_list CATCH '(' type ID ')' '{' statements_list '}'")
+    def catch_list(self,p):
+        return p.catch_list + [Catch(exception=p.type,variable=p.ID,body=p.statements_list,line=p.lineno)]
+
+    @_("CATCH '(' type ID ')' '{' statements_list '}'")
+    def catch_list(self,p):
+        return [Catch(exception=p.type,variable=p.ID,body=p.statements_list,line=p.lineno)]
