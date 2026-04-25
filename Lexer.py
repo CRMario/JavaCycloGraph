@@ -31,17 +31,19 @@ class JavaLexer(Lexer):
 
         # tokens that add up to cyclomatic complexity
         IF, ELSE, WHILE, FOR, SWITCH, CASE, DO, RETURN, 
-        DEFAULT, QUESTION, BREAK, CONTINUE, TRY, CATCH, FINALLY,
+        DEFAULT, QUESTION, BREAK, TRY, CATCH, FINALLY,
         # ? for ternary operators
 
         # tokens that define the code structure
-        CLASS, PUBLIC, PRIVATE, STATIC, VOID,
+        CLASS, PUBLIC, PRIVATE, STATIC, VOID, THIS, NULL,
 
         # logic operators
         AND, OR, NOT,
 
         # comparison operators
-        LE, GE, LT, GT, EQ, NE
+        LE, GE, LT, GT, EQ, NE,
+
+        INCREMENT, DECREMENT, NEW,
     }
 
     literals = { '{', '}',
@@ -56,9 +58,8 @@ class JavaLexer(Lexer):
         'switch': 'SWITCH', 'case': 'CASE', 'do': 'DO', 'return': 'RETURN',
         'class': 'CLASS', 'public': 'PUBLIC', 'private': 'PRIVATE',
         'static': 'STATIC', 'void': 'VOID', 'default': 'DEFAULT',
-        'break': 'BREAK', 'continue': 'CONTINUE', 'try': 'TRY',
-        'catch': 'CATCH', 'finally': 'FINALLY', 'this': 'THIS', 'null': 'NULL',
-        'new': 'NEW'
+        'break': 'BREAK', 'try': 'TRY', 'catch': 'CATCH', 'finally': 'FINALLY',
+        'this': 'THIS', 'null': 'NULL','new': 'NEW'
     }
 
     ignore = '\t\r' # using windows, may have to be changed for unix

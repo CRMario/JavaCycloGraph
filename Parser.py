@@ -9,7 +9,7 @@ class JavaParser(Parser):
     debugfile = "debug.out"
 
     precedence = (
-        ('right', 'ASSIGN'), # (int a = 3)
+        ('right', '='), # (int a = 3)
         ('left', 'OR'), # (a || b) || c
         ('left', 'AND'), # (a && b) && c
         ('right', 'NOT'), # (! a)
@@ -86,7 +86,7 @@ class JavaParser(Parser):
     
     @_("modifiers type ID '(' parameters_list ')' '{' method_body '}'")
     def method_declaration(self, p):
-        return Method(name=p.ID, params=p.parameters_list, body=p.method_body)
+        return Method(name=p.ID, return_type=p.type, params=p.parameters_list, body=p.method_body)
     
     @_("VOID")
     def type(self, p):
@@ -166,28 +166,28 @@ class JavaParser(Parser):
     
     @_("modifiers PUBLIC")
     def modifiers(self, p):
-        return p.modifiers + [p.PUBLIC]
-    
+        return p.modifiers + ['public']
+ 
     @_("modifiers PRIVATE")
     def modifiers(self, p):
-        return p.modifiers + [p.PRIVATE]
-    
+        return p.modifiers + ['private']
+ 
     @_("modifiers STATIC")
     def modifiers(self, p):
-        return p.modifiers + [p.STATIC]
-    
+        return p.modifiers + ['static']
+ 
     @_("PUBLIC")
     def modifiers(self, p):
-        return [p.PUBLIC]
-    
+        return ['public']
+ 
     @_("PRIVATE")
     def modifiers(self, p):
-        return [p.PRIVATE]
-    
+        return ['private']
+ 
     @_("STATIC")
     def modifiers(self, p):
-        return [p.STATIC]
-
+        return ['static']
+ 
     @_("")
     def modifiers(self, p):
         return [] # no modifiers
@@ -236,74 +236,74 @@ class JavaParser(Parser):
 
     @_("expression LE expression")
     def expression(self, p):
-        return f'{p[0]} <= {p[2]}'
+        return LEOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression GE expression")
     def expression(self, p):
-        return f'{p[0]} >= {p[2]}'
+        return GEOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression LT expression")
     def expression(self, p):
-        return f'{p[0]} < {p[2]}'
+        return LTOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression GT expression")
     def expression(self, p):
-        return f'{p[0]} > {p[2]}'
+        return GTOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression EQ expression")
     def expression(self, p):
-        return f'{p[0]} == {p[2]}'
+        return EQOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression NE expression")
     def expression(self, p):
-        return f'{p[0]} != {p[2]}'
+        return NEOperation(left=p[0],right=p[2],line=p.lineno)
 
     # logical expressions
     @_("expression AND expression")
     def expression(self, p):
-        return f'{p[0]} && {p[2]}'
+        return ANDOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '&' expression")   
     def expression(self, p):
-        return f'{p[0]} & {p[2]}'
+        return BitwiseANDOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression OR expression")
     def expression(self, p):
-        return f'{p[0]} || {p[2]}'
+        return OROperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '|' expression")   
     def expression(self, p):
-        return f'{p[0]} | {p[2]}'
+        return BitwiseOROperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("NOT expression")
     def expression(self, p):
-        return f'!{p[1]}'
+        return NotOp(op='!', operand=p[1], line=p.lineno)
 
     # arithmetic expressions
     @_("expression '+' expression")
     def expression(self,p):
-        return f'{p[0]} + {p[2]}'
+        return AddOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '-' expression")
     def expression(self,p):
-        return f'{p[0]} - {p[2]}'
+        return SubstractOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '/' expression")
     def expression(self,p):
-        return f'{p[0]} / {p[2]}'
+        return DivOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '*' expression")
     def expression(self,p):
-        return f'{p[0]} * {p[2]}'
+        return MultOperation(left=p[0],right=p[2],line=p.lineno)
     
     @_("expression '%' expression")
     def expression(self,p):
-        return f'{p[0]} % {p[2]}'
+        return RemainderOperation(left=p[0],right=p[2],line=p.lineno)
     
     #method calls
     @_("ID '(' expression_list ')'")
     def expression(self, p):
-        return f'{p.ID}({", ".join(p.expression_list)})'
+        return MethodCall(obj=None, method=p.ID, args=p.expression_list, line=p.lineno)
 
     @_("expression_list ',' expression")
     def expression_list(self, p):
@@ -320,21 +320,21 @@ class JavaParser(Parser):
     # parenthesized expression
     @_("'(' expression ')'")
     def expression(self, p):
-        return f'({p.expression})'
+        return p.expression
     
     # chained method calls: field access (ex. System.out) and method call (ex. banana.split())
     @_("expression '.' ID") 
     def expression(self, p):
-        return f'{p.expression}.{p.ID}'
+        return FieldAccess(obj=p[0], field=p.ID, line=p.lineno)
     
     @_("expression '.' ID '(' expression_list ')'") 
     def expression(self, p):
-        return f'{p.expression}.{p.ID}({", ".join(p.expression_list)})'
+        return MethodCall(obj=p[0], method=p.ID, args=p.expression_list, line=p.lineno)
 
     # array access
     @_("expression '[' expression ']'")
     def expression(self, p):
-        return f'{p[0]}[{p[2]}]'
+        return ArrayAccess(array=p[0], index=p[2], line=p.lineno)
     
     # ternary operator
     @_("expression QUESTION expression ':' expression")
@@ -344,43 +344,43 @@ class JavaParser(Parser):
     # casting
     @_("'(' type ')' expression")
     def expression(self, p):
-        return f'({p.type}){p.expression}'
+        return Cast(cast_type=p.type, expr=p.expression, line=p.lineno)
 
     # this
     @_("THIS")
     def expression(self,p):
-        return 'this'
+        return This(line=p.lineno)
     
     # null
     @_("NULL")
     def expression(self,p):
-        return 'null'
+        return NullLiteral(line=p.lineno)
     
     # new for object creation
     @_("NEW ID '(' expression_list ')'")
     def expression(self,p):
-        return f'new {p.ID}({", ".join(p.expression_list)})'
+        return NewObject(class_name=p.ID, args=p.expression_list, line=p.lineno)
     
     @_("NEW ID '[' expression ']'")
     def expression(self,p):
-        return f'new {p.ID}[{p.expression}]'
+        return NewArray(element_type=p.ID, size=p.expression, line=p.lineno)
     
     # int, float, boolean, string
     @_("INT_CONST")
     def expression(self, p):
-        return str(p.INT_CONST)
+        return Integer(value=int(p.INT_CONST),line=p.lineno)
     
     @_("FLOAT_CONST")
     def expression(self, p):
-        return str(p.FLOAT_CONST)
+        return Float(value=float(p.FLOAT_CONST),line=p.lineno)
     
     @_("BOOL_CONST")
     def expression(self, p):
-        return str(p.BOOL_CONST)
+        return Bool(value=(p.BOOL_CONST == 'true'),line=p.lineno)
     
     @_("STR_CONST")
     def expression(self, p):
-        return p.STR_CONST
+        return String(value=p.STR_CONST,line=p.lineno)
 
     # there's more primitive types. they will all fall under the 'type' rule, just like
     # these four previous ones could have had since i will not be doing type checking (for now?)
@@ -388,31 +388,31 @@ class JavaParser(Parser):
     # assignment as expression
     @_("ID '=' expression")
     def expression(self, p):
-        return f'{p.ID} = {p.expression}' # while ((line = reader.readLine()) != null), assignment as expression example
+        return Assignment(name=p.ID, value=p.expression, line=p.lineno)
     
     # increment expressions
     @_("ID INCREMENT")
     def expression(self, p):
-        return f'{p.ID}++'
+        return Increment(operand=Identifier(name=p.ID, line=p.lineno), line=p.lineno)
 
     @_("ID DECREMENT")
     def expression(self, p):
-        return f'{p.ID}--'
+        return Decrement(operand=Identifier(name=p.ID, line=p.lineno),line=p.lineno)
     
     @_("ID")
     def expression(self, p):
-        return f'{p.ID}'
+        return Identifier(name=p.ID, line=p.lineno)
     
     # done with expressions
 
     # variable declaration
     @_("type ID '=' expression ';'")
     def variable_declaration(self, p):
-        return f'{p.type} {p.ID} = {p.expression}'
+        return VarDecl(var_type=p.type, name=p.ID, value=p.expression, line=p.lineno)
     
     @_("type ID ';'")
     def variable_declaration(self, p):
-        return f'{p.type} {p.ID}'
+        return VarDecl(var_type=p.type, name=p.ID, line=p.lineno)
     
     #expression statement
     @_("expression ';'")
