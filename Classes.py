@@ -476,7 +476,6 @@ class Assignment(Node):
     def __str__(self):
         return f'{self.name} = {self.value}'
 
-
 @dataclass
 class VarDecl(Node):
     var_type: str = ''
@@ -713,6 +712,8 @@ class For(Node):
                     f'"{scope.filename}", line {self.line}: '
                     f'For condition must be boolean, got {ct}'
                 )
+        if self.update is not None and hasattr(self.update, 'Type'):
+            self.update.Type(scope)
 
     def __str__(self):
         return f'for ({self.initialization}; {self.condition}; {self.update})'
@@ -720,15 +721,15 @@ class For(Node):
 
 @dataclass
 class Switch(Node):
-    condition: object = None
+    expr: object = None
     cases: List = field(default_factory=list)
 
     def Type(self, scope):
-        if hasattr(self.condition, 'Type'):
-            self.condition.Type(scope)
+        if hasattr(self.expr, 'Type'):
+            self.expr.Type(scope)
 
     def __str__(self):
-        return f'switch ({self.condition})'
+        return f'switch ({self.expr})'
 
 
 @dataclass

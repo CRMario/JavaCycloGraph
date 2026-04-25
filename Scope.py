@@ -23,6 +23,7 @@ class Scope:
         self.stack[-1][name] = {
             'type': type,
             'value': value,
+            'mutable': False,
             'depth': depth
         }
 

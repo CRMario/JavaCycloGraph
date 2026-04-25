@@ -1,52 +1,124 @@
 import os
-import networkx as nx
 from Lexer import JavaLexer
 from Parser import JavaParser
 from CFG import CFGBuilder
+from Visualizer import visualize_all
+from Scope import SemanticException
 
-TESTS = "03" 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DIR = os.path.join(BASE_DIR, "tests", TESTS)
 
-FICHEROS = [f for f in os.listdir(DIR) if f.endswith('.java')]
+def run_lexer_tests():
+    DIR = os.path.join(BASE_DIR, "tests", "01")
+    if not os.path.exists(DIR):
+        return
+    print("=== 01: LEXER ===")
+    for fich in sorted(f for f in os.listdir(DIR) if f.endswith('.java')):
+        lexer = JavaLexer()
+        with open(os.path.join(DIR, fich), 'r', newline='') as f:
+            source = f.read()
 
-for fich in FICHEROS:
-    print(f'\n=== Processing: {fich} ===')
-    filepath = os.path.join(DIR, fich)
-    with open(filepath, 'r') as f:
-        source = f.read()
+        tokens = list(lexer.tokenize(source))
+        output = '\n'.join(f'#{tok.lineno} {tok.type}' for tok in tokens)
 
-    lexer = JavaLexer()
-    tokens = list(lexer.tokenize(source))
-    
-    parser = JavaParser(filename=fich)
-    program = parser.parse(iter(tokens))
-    if parser.errors:
-        print(f"  [!] Parse Errors: {parser.errors}")
-        continue
+        expected_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.expected')
+        if os.path.exists(expected_path):
+            with open(expected_path, 'r') as f:
+                expected = f.read().strip()
+            status = 'OK' if output.strip() == expected else 'FAIL'
+        else:
+            status = 'NO_EXPECTED'
 
-    builder = CFGBuilder()
-    builder.scope.filename = fich
-    # build() returns a dict of graphs (one per method)
-    graphs = builder.build(program)
+        out_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.out')
+        with open(out_path, 'w') as f:
+            f.write(output)
 
-    if builder.errors:
-        print(f"  [!] Semantic Errors: {builder.errors}")
+        print(f'  [{status}] {fich}')
 
-    # temporally here to start trying out some tests
-    print(f"  Results for folder {TESTS}:")
-    for method_full_name, data in graphs.items():
-        g = data['graph']
-        nodes = g.number_of_nodes()
-        edges = g.number_of_edges()
-        
-        # M = E - N + 2P (P=1 for a single method)
-        complexity = edges - nodes + 2
-        
-        print(f"    Method: {method_full_name}")
-        print(f"    Nodes: {nodes}, Edges: {edges}")
-        print(f"    Cyclomatic Complexity: {complexity}")
-        
-        # Verify the execution path was tracked
-        path_len = len(data['execution_path'])
-        print(f"    Nodes in highlighted path: {path_len}")
+
+def run_parser_tests():
+    DIR = os.path.join(BASE_DIR, "tests", "02")
+    if not os.path.exists(DIR):
+        return
+    print("=== 02: PARSER ===")
+    for fich in sorted(f for f in os.listdir(DIR) if f.endswith('.java')):
+        lexer = JavaLexer()
+        with open(os.path.join(DIR, fich), 'r', newline='') as f:
+            source = f.read()
+
+        tokens = lexer.tokenize(source)
+        parser = JavaParser(filename=fich)
+        program = parser.parse(tokens)
+
+        out_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.out')
+        if parser.errors:
+            with open(out_path, 'w') as f:
+                f.write('\n'.join(parser.errors))
+            print(f'  [ERRORS] {fich}')
+            for e in parser.errors:
+                print(f'    {e}')
+        else:
+            with open(out_path, 'w') as f:
+                f.write('OK')
+            print(f'  [OK] {fich}')
+
+
+def run_cfg_tests():
+    DIR = os.path.join(BASE_DIR, "tests", "03")
+    if not os.path.exists(DIR):
+        return
+    print("=== 03: CFG ===")
+    OUTPUT_DIR = os.path.join(BASE_DIR, "cfg_output")
+
+    for fich in sorted(f for f in os.listdir(DIR) if f.endswith('.java')):
+        print(f'\n  {fich}')
+        with open(os.path.join(DIR, fich), 'r', newline='') as f:
+            source = f.read()
+
+        # lex
+        lexer = JavaLexer()
+        tokens = lexer.tokenize(source)
+
+        # parse
+        parser = JavaParser(filename=fich)
+        program = parser.parse(tokens)
+
+        if parser.errors:
+            print('    [PARSE ERRORS]')
+            for e in parser.errors:
+                print(f'      {e}')
+            out_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.out')
+            with open(out_path, 'w') as f:
+                f.write('\n'.join(parser.errors))
+            continue
+
+        # build CFG
+        builder = CFGBuilder()
+        graphs = builder.build(program)
+
+        # write .out if there are semantic errors
+        out_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.out')
+        if builder.errors:
+            print('    [SEMANTIC ERRORS]')
+            for e in builder.errors:
+                print(f'      {e}')
+            with open(out_path, 'w') as f:
+                f.write('\n'.join(builder.errors))
+        else:
+            with open(out_path, 'w') as f:
+                f.write('OK')
+
+        # cyclomatic complexity summary
+        for method_name, gdata in graphs.items():
+            g = gdata['graph']
+            cc = g.number_of_edges() - g.number_of_nodes() + 2
+            print(f'    {method_name}: CC={cc}')
+
+        # visualize
+        method_output_dir = os.path.join(OUTPUT_DIR, os.path.splitext(fich)[0])
+        visualize_all(graphs, output_dir=method_output_dir, errors=builder.errors)
+
+
+if __name__ == '__main__':
+    run_lexer_tests()
+    run_parser_tests()
+    run_cfg_tests()
