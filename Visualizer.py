@@ -20,10 +20,9 @@ def visualize_all(graphs, output_dir='cfg_output', errors=None):
     errors = errors or []
     os.makedirs(output_dir, exist_ok=True)
     for method_name, graph_data in graphs.items():
-        out_path = visualize_cfg(graph_data, method_name,
-                                 output_dir=output_dir, errors=errors)
+        out_path = visualize_cfg(graph_data, method_name,output_dir=output_dir, errors=errors)
         if out_path:
-            print(f'  saved → {out_path}')
+            print(f'  saved as: {out_path}')
  
  
 def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
@@ -89,8 +88,8 @@ def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
     fig_w = max(10, n * 0.7)
     fig_h = max(7,  n * 0.9)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-    fig.patch.set_facecolor('#0f172a')
-    ax.set_facecolor('#0f172a')
+    fig.patch.set_facecolor('#ffffff')
+    ax.set_facecolor('#ffffff')
  
     nx.draw_networkx_nodes(
         graph, pos,
@@ -103,8 +102,8 @@ def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
     nx.draw_networkx_labels(
         graph, pos,
         labels=node_labels,
-        font_size=7,
-        font_color='white',
+        font_size=5,
+        font_color='black',
         font_weight='bold',
         ax=ax,
     )
@@ -123,12 +122,12 @@ def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
         graph, pos,
         edge_labels=edge_labels,
         font_size=7,
-        font_color='#94a3b8',
-        bbox=dict(boxstyle='round,pad=0.2', fc='#1e293b', ec='none', alpha=0.8),
+        font_color='#000000',
+        bbox=dict(boxstyle='round,pad=0.2', fc='#ffffff', ec='none', alpha=0.8),
         ax=ax,
     )
  
-    # title & CC
+    # title & Cyclomatic Complexity
     E  = graph.number_of_edges()
     N  = graph.number_of_nodes()
     cc = E - N + 2
@@ -137,7 +136,7 @@ def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
     if errors:
         title_parts.append(f'!!! {errors[0]}')
     ax.set_title('   |   '.join(title_parts),
-                 fontsize=10, color='white', pad=14,
+                 fontsize=10, color='black', pad=14,
                  fontfamily='monospace')
  
     # legend
@@ -170,7 +169,6 @@ def visualize_cfg(graph_data, method_name, output_dir='.', errors=None):
 
  
 def _wrap(text, width=20):
-    """Naive line-wrap for node labels."""
     if len(text) <= width:
         return text
     words = text.split()

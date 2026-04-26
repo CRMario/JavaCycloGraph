@@ -34,12 +34,8 @@ class CFGBuilder:
         self.execution_path.append(start)
 
         # add all the possible intermediate nodes found in each statement of the method
-        try:
-            for statement in method.body:
-                self.handle_statement(statement)
-        except SemanticException as e:
-            self.errors.append(str(e))
-            self.error_node = self.current
+        for statement in method.body:
+            self.handle_statement(statement)
 
         # we finished looking at the method, create end node
         end = self.create_cfg_node("END")
@@ -55,6 +51,7 @@ class CFGBuilder:
             'graph': self.graph,
             'execution_path': self.execution_path,
             'error_node': self.error_node,
+            'cc': self.graph.number_of_edges() - self.graph.number_of_nodes() + 2
         }
     
     def create_cfg_node(self, node_name):
@@ -84,16 +81,25 @@ class CFGBuilder:
             # just a normal statement (ex. int x = 5;)
             # these will not count for cyclomatic complexity, the ones that will do will
             # have two edges (paths they can craete in the code)
-            statement.Type(self.scope)
             node = self.create_cfg_node(str(statement))
             self.graph.add_edge(self.current, node, label=labelling)
-            if execute and self.global_execution:
-                self.execution_path.append(node)
+            try:       
+                statement.Type(self.scope)
+                if execute and self.global_execution:
+                    self.execution_path.append(node)
+            except SemanticException as e:
+                self.errors.append(str(e))
+                self.error_node = node
+                self.global_execution = False
             self.current = node
 
     def handle_if(self, statement, labelling=None,execute=True):
         # verify boolean condition and recursively obtain computed_value
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
 
         condition_node = self.create_cfg_node(f"IF: {statement.condition}")
         self.graph.add_edge(self.current,condition_node,label=labelling)
@@ -101,7 +107,6 @@ class CFGBuilder:
             self.execution_path.append(condition_node)
 
         condition_value = self._eval_bool(statement.condition)
-
         before_if_execution = self.global_execution
 
         # if condition_value is None, both paths "execute". this is intended
@@ -117,6 +122,7 @@ class CFGBuilder:
         if statement.true:
             self.scope.push()
             self.current = condition_node
+            self.global_execution = before_if_execution if exec_true else False #check if this is the exec'd branch and still executing
             self._run_branch(statement.true,'True',execute=exec_true)
             self.scope.pop()
             end_true = self.current # where the true branch ended
@@ -124,7 +130,7 @@ class CFGBuilder:
             end_true = condition_node #empty true branch which is probably unlikely
 
         # in case there was a for or while inside the if which killed the execution flow of
-        # the branch actually taken, go back to old global_execution
+        # the branch actually taken, go back to old global_execution for false branch
         after_true_execution = self.global_execution
         self.global_execution = before_if_execution
    
@@ -132,12 +138,15 @@ class CFGBuilder:
         if statement.false:
             self.scope.push()
             self.current = condition_node
+            self.global_execution = before_if_execution if exec_false else False
             self._run_branch(statement.false,'False',execute=exec_false)
             self.scope.pop()
             end_false = self.current
+            after_false_execution = self.global_execution
         else:
             # no false branch
             end_false = condition_node
+            after_false_execution = before_if_execution if exec_false else False
    
         join = self.create_cfg_node("END_IF")
         if not statement.true: # if there's no true statement
@@ -152,15 +161,19 @@ class CFGBuilder:
             # we just join in this case like with the true path
             self.graph.add_edge(end_false,join)
 
-        if execute and self.global_execution:
+        if execute and (after_true_execution or after_false_execution):
             self.execution_path.append(join)
 
         self.current = join
 
-        self.global_execution = after_true_execution or self.global_execution
+        self.global_execution = after_true_execution or after_false_execution
 
     def handle_while(self, statement, labelling=None, execute=True):
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
 
         condition_node = self.create_cfg_node(f"WHILE: {statement.condition}")
         self.graph.add_edge(self.current,condition_node,label=labelling)
@@ -195,7 +208,11 @@ class CFGBuilder:
         self.global_execution = False
 
     def handle_for(self, statement, labelling=None, execute=True):
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
         # similar to handling while but with an initialization and an update
         init_node = self.create_cfg_node(f"FOR_INIT: {statement.initialization}")
         self.graph.add_edge(self.current,init_node,label=labelling)
@@ -231,7 +248,11 @@ class CFGBuilder:
         self.global_execution = False
 
     def handle_do_while(self, statement, labelling=None, execute=True):
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
         self.scope.push()
         first_body_node = self.nodes
         self._run_branch(statement.body, labelling, execute=execute)
@@ -253,7 +274,11 @@ class CFGBuilder:
 
     def handle_switch(self, statement, labelling=None, execute=True):
         # verify boolean condition and recursively obtain computed_value
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
 
         switch_node = self.create_cfg_node(f"SWITCH: {statement.expr}")
         self.graph.add_edge(self.current, switch_node, label=labelling)
@@ -334,7 +359,11 @@ class CFGBuilder:
         self.current = join
 
     def handle_try(self, statement, labelling=None, execute=True):
-        statement.Type(self.scope)
+        try:       
+            statement.Type(self.scope)
+        except SemanticException as e:
+            self.errors.append(str(e))
+            self.error_node = self.current
 
         try_node = self.create_cfg_node("TRY")
         self.graph.add_edge(self.current, try_node, label=labelling)
@@ -360,9 +389,12 @@ class CFGBuilder:
         any_catch_alive = False
 
         for catch in statement.catch:
-            self.global_execution = before_try_execution
+            self.global_execution = before_try_execution if execute else False
             catch_node = self.create_cfg_node(f"CATCH: {catch.exception} {catch.variable}")
             self.graph.add_edge(try_node, catch_node, label='exception')
+
+            if execute and self.global_execution:
+                self.execution_path.append(catch_node)
 
             self.scope.push()
             self.scope.add_variable(catch.variable, catch.exception)
@@ -376,10 +408,14 @@ class CFGBuilder:
 
         # finally always executes if it exists
         if statement.finally_do:
-            self.global_execution = before_try_execution
+            self.global_execution = before_try_execution if execute else False
             finally_node = self.create_cfg_node("FINALLY")
             # finally connects from join (runs after try or catch)
             self.graph.add_edge(join, finally_node)
+
+            if execute and self.global_execution:
+                self.execution_path.append(join)
+                self.execution_path.append(finally_node)
 
             real_join = self.create_cfg_node("END_FINALLY")
 
@@ -391,7 +427,6 @@ class CFGBuilder:
             self.graph.add_edge(self.current, real_join)
 
             if execute and self.global_execution:
-                self.execution_path.append(finally_node)
                 self.execution_path.append(real_join)
 
             self.global_execution = after_try_execution or any_catch_alive
@@ -424,6 +459,10 @@ class CFGBuilder:
         # False and also to indicate if the nodes belong to the execution path
 
         if not statements:
+            return
+        
+        if not isinstance(statements, list):
+            self.handle_statement(statements, labelling, execute)
             return
         
         self.handle_statement(statements[0], labelling, execute)

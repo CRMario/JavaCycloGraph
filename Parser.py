@@ -17,6 +17,7 @@ class JavaParser(Parser):
         ('nonassoc', 'LE', 'GE', 'GT', 'LT'), # can not do a < b < c ...
         ('left', '+', '-'), # (a + b) + c
         ('left', '*', '/'), # (a * b) * c
+        ('right', 'UMINUS'), # (- a)
         ('left', '.') # (members.get(2)).salary
     )
 
@@ -398,6 +399,10 @@ class JavaParser(Parser):
     @_("ID DECREMENT")
     def expression(self, p):
         return Decrement(operand=Identifier(name=p.ID, line=p.lineno),line=p.lineno)
+    
+    @_("'-' expression %prec UMINUS") # ex. value -1
+    def expression(self, p):
+        return UnaryMinus(operand=p.expression, line=p.lineno)
     
     @_("ID")
     def expression(self, p):

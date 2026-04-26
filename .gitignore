@@ -3,3 +3,4 @@ __pycache__
 # test outputs
 tests/**/*.out
 debug.out
+cfg_output/*

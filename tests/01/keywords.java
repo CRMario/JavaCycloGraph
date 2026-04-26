@@ -29,9 +29,6 @@ cAse
 break
 BREAK
 bReak
-continue
-CONTINUE
-cOnTinue
 try
 TRY
 tRy

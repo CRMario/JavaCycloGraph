@@ -84,6 +84,26 @@ class String(Node):
 
     def __str__(self):
         return f'"{self.value}"'
+    
+@dataclass
+class UnaryMinus(Node):
+    operand: object = None
+
+    def Type(self, scope):
+        t = self.operand.Type(scope)
+        if t not in ('int', 'float'):
+            raise SemanticException(
+                f'"{scope.filename}", line {self.line}: '
+                f"Unary '-' requires numeric operand, got {t}"
+            )
+        self.inferred_type = t
+        v = self.operand.computed_value
+        if v is not None:
+            self.computed_value = -v
+        return t
+
+    def __str__(self):
+        return f'-{self.operand}'
 
 
 @dataclass
