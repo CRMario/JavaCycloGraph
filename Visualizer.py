@@ -20,7 +20,8 @@ def visualize_all(graphs, output_dir='cfg_output', errors=None):
     errors = errors or []
     os.makedirs(output_dir, exist_ok=True)
     for method_name, graph_data in graphs.items():
-        out_path = visualize_cfg(graph_data, method_name,output_dir=output_dir, errors=errors)
+        method_errors = graph_data.get('errors', [])
+        out_path = visualize_cfg(graph_data, method_name,output_dir=output_dir, errors=method_errors)
         if out_path:
             print(f'  saved as: {out_path}')
  
