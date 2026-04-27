@@ -436,7 +436,7 @@ class JavaParser(Parser):
     # switch statement
     @_("SWITCH '(' expression ')' '{' case_list '}'")
     def switch_statement(self,p):
-        return Switch(condition=p.expression,cases=p.case_list,line=p.lineno)
+        return Switch(expr=p.expression,cases=p.case_list,line=p.lineno)
     
     @_("case_list case")
     def case_list(self, p):

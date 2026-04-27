@@ -85,15 +85,15 @@ class CFGBuilder:
             # have two edges (paths they can craete in the code)
             node = self.create_cfg_node(str(statement))
             self.graph.add_edge(self.current, node, label=labelling)
-            try:       
-                statement.Type(self.scope)
-                if execute and self.global_execution:
-                    self.execution_path.append(node)
-            except SemanticException as e:
-                self.errors_method.append(str(e))
-                self.errors.append(str(e))
-                self.error_node = node
-                self.global_execution = False
+            if execute and self.global_execution:
+                self.execution_path.append(node)
+                try:       
+                    statement.Type(self.scope)
+                except SemanticException as e:
+                    self.errors_method.append(str(e))
+                    self.errors.append(str(e))
+                    self.error_node = node
+                    self.global_execution = False
             self.current = node
 
     def handle_if(self, statement, labelling=None,execute=True):
@@ -311,6 +311,11 @@ class CFGBuilder:
         for case in statement.cases:
             case_node = self.create_cfg_node(f"CASE {case.value}")
             self.graph.add_edge(switch_node, case_node, label=str(case.value))
+            try:
+                case.Type(self.scope)
+            except SemanticException as e:
+                self.errors_method.append(str(e))
+                self.errors.append(str(e))
             case_nodes[id(case)] = case_node
 
         def _case_matches(case):
@@ -332,6 +337,7 @@ class CFGBuilder:
             # if case matches we found the path
             if m is True:
                 matched = case
+                self.execution_path.append(case_nodes[id(case)])
                 break
             elif m is None: # unknown value in the switch we can't know the case
                 matched = None
@@ -485,6 +491,7 @@ class CFGBuilder:
                 break
 
     def _eval_bool(self, condition):
+        print(f"_eval_bool: {condition}, computed_value={getattr(condition, 'computed_value', 'NO ATTR')}")
         # if its a bool return it directly
         if hasattr(condition, 'value') and isinstance(condition.value, bool):
             return condition.value
