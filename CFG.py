@@ -85,15 +85,15 @@ class CFGBuilder:
             # have two edges (paths they can craete in the code)
             node = self.create_cfg_node(str(statement))
             self.graph.add_edge(self.current, node, label=labelling)
-            if execute and self.global_execution:
-                self.execution_path.append(node)
-                try:       
-                    statement.Type(self.scope)
-                except SemanticException as e:
-                    self.errors_method.append(str(e))
-                    self.errors.append(str(e))
-                    self.error_node = node
-                    self.global_execution = False
+            try:       
+                statement.Type(self.scope)
+                if execute and self.global_execution:
+                    self.execution_path.append(node)
+            except SemanticException as e:
+                self.errors_method.append(str(e))
+                self.errors.append(str(e))
+                self.error_node = node
+                self.global_execution = False
             self.current = node
 
     def handle_if(self, statement, labelling=None,execute=True):

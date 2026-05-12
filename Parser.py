@@ -343,9 +343,9 @@ class JavaParser(Parser):
         return Ternary(condition=p[0],true=p[2],false=p[4],line=p.lineno)
     
     # casting
-    @_("'(' type ')' expression")
-    def expression(self, p):
-        return Cast(cast_type=p.type, expr=p.expression, line=p.lineno)
+    # @_("'(' type ')' expression")
+    # def expression(self, p):
+    #    return Cast(cast_type=p.type, expr=p.expression, line=p.lineno)
 
     # this
     @_("THIS")

@@ -34,38 +34,11 @@ def run_lexer_tests():
         print(f'  [{status}] {fich}')
 
 
-def run_parser_tests():
+def run_cfg_tests():
     DIR = os.path.join(BASE_DIR, "tests", "02")
     if not os.path.exists(DIR):
         return
-    print("=== 02: PARSER ===")
-    for fich in sorted(f for f in os.listdir(DIR) if f.endswith('.java')):
-        lexer = JavaLexer()
-        with open(os.path.join(DIR, fich), 'r', newline='') as f:
-            source = f.read()
-
-        tokens = lexer.tokenize(source)
-        parser = JavaParser(filename=fich)
-        program = parser.parse(tokens)
-
-        out_path = os.path.join(DIR, os.path.splitext(fich)[0] + '.out')
-        if parser.errors:
-            with open(out_path, 'w') as f:
-                f.write('\n'.join(parser.errors))
-            print(f'  [ERRORS] {fich}')
-            for e in parser.errors:
-                print(f'    {e}')
-        else:
-            with open(out_path, 'w') as f:
-                f.write('OK')
-            print(f'  [OK] {fich}')
-
-
-def run_cfg_tests():
-    DIR = os.path.join(BASE_DIR, "tests", "03")
-    if not os.path.exists(DIR):
-        return
-    print("=== 03: CFG ===")
+    print("=== 02: Parser & CFG ===")
     OUTPUT_DIR = os.path.join(BASE_DIR, "cfg_output")
     all_graphs = {}
 
@@ -138,5 +111,4 @@ def _print_cc_table(graphs):
 
 if __name__ == '__main__':
     run_lexer_tests()
-    run_parser_tests()
     run_cfg_tests()
